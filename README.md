@@ -1,0 +1,77 @@
+# PS4 WebKit Host (minimal, 12.00)
+
+A very small, static PS4 WebKit jailbreak host for **firmware 12.00**. It has three things:
+
+- a **Start** button,
+- an autoscrolling **log panel**,
+- an **offline cache** (automatic on first visit, plus a manual refresh button).
+
+The exploit chain is the one WebKitty uses by default on 12.00: **Wobkot (WebKit userland) + Lapse (kernel)**, loading GoldHEN v2.4b18.14.
+
+> This is a personal, minimal host. It has been checked statically only. **It has not been tested on real hardware.** Verify it on your own console with the checklist below.
+
+## Repository layout
+
+```
+index.html            landing page: Start button, log panel, cache UI
+run.html              exploit runner (same log panel)
+app.js / run.js       UI and orchestration
+style.css             all styling
+manifest.appcache     offline cache manifest
+src/wobkot/           vendored, unmodified exploit chain from WebKitty
+payloads/goldhen.bin  GoldHEN v2.4b18.14 from WebKitty
+```
+
+## Host it
+
+### GitHub Pages
+
+1. Create a public repository and push this folder to its default branch.
+2. In the repository, go to **Settings → Pages** and set **Source** to `Deploy from a branch`, branch `main`, folder `/ (root)`.
+3. Open `https://<username>.github.io/<repo-name>/` on the PS4.
+
+`.nojekyll` is included so Jekyll does not skip the `src/` directory.
+
+> **HTTPS note:** the PS4 browser can reject modern TLS certificates, and WebKitty itself redirects PS4 users from HTTPS to HTTP. If the page will not load, use a custom domain served over HTTP, or serve the folder locally on your LAN (below).
+
+### Local test server
+
+```sh
+python3 -m http.server 8000
+```
+
+Then open `http://<your-ip>:8000/` on the PS4 (same network). Use HTTP, not HTTPS.
+
+## Offline caching
+
+Both pages declare `manifest="manifest.appcache"`. The PS4's WebKit supports the HTML5 Application Cache, not Service Workers, so the manifest is the caching mechanism.
+
+- On the first visit the browser downloads everything in the manifest automatically; the status bar shows progress.
+- The **Cache for offline** button calls `applicationCache.update()`.
+- After caching, the PS4 can open the bookmarked page with no network connection.
+- If you change a cached file, bump the `# vN` line at the top of `manifest.appcache` and press the cache button.
+
+GitHub Pages serves `.appcache` as `text/cache-manifest` (via mime-db), which the PS4 browser requires. Verify on your live URL:
+
+```sh
+curl -I https://<username>.github.io/<repo-name>/manifest.appcache | grep -i content-type
+```
+
+Modern desktop browsers have removed AppCache, so the status line will say "not supported in this browser" there — that is expected. Desktop mode is for visual testing only: on a non-PS4 browser, Start streams a simulated log.
+
+## Hardware test checklist
+
+1. Clear the PS4 browser's cookies/site data, then open the host URL and let caching reach 100%.
+2. Confirm the page reports `PS4 · 12.00` and the Start button is enabled.
+3. Press Start and watch the log. Look for `===USERLAND===`, `===KERNEL===`, `Achieved jailbreak !!`, and `===END===`.
+4. Check the PS4 notification for HEN/GoldHEN, then check **Settings → System → System Information**: the firmware line should show the HEN version.
+5. Power the console off and on, disable the network, open the bookmark, and confirm the page still loads from cache.
+6. If it fails: note the last log line, reboot the console, clear browser data, and try again. Kernel panics and "not enough memory" dialogs are normal in this scene — keep pressing OK / retry.
+
+## Credits and license
+
+The exploit chain and GoldHEN binary are vendored unmodified from [ArabPixel/WebKitty](https://github.com/ArabPixel/WebKitty), which is licensed under **AGPL-3.0**. See `LICENSE` and `src/wobkot/LICENSE.txt`. All credit for the exploit work goes to the researchers credited upstream: ufm42, Al Azif, ArabPixel, Nathan Fargo, nhk, Dr.Yenyen, cow, idlesauce, jordy, ChendoChap, sonic-iso, SiSTRo, and the rest of the list in `src/wobkot/README.md` (not vendored here).
+
+The landing page HTML/CSS/JS in this repository is original work, reimplemented to match the minimal look of common PS4 hosts rather than copied from WebKitty.
+
+Because this repository contains AGPL-3.0 code, it is distributed under **AGPL-3.0-or-later** as well.

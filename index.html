@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" manifest="manifest.appcache">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <title>PS4 WebKit Host</title>
+  <meta name="description" content="A minimal PS4 12.00 WebKit jailbreak host.">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <h1 class="brand">PS4 <span>WebKit Host</span></h1>
+      <div class="topbar-right">
+        <span class="badge" id="mode-badge">detecting…</span>
+        <button class="cache-btn" id="cache-btn" type="button">Cache for offline</button>
+      </div>
+    </header>
+
+    <div class="cache-status" id="cache-status" aria-live="polite">
+      <div class="cache-track"><div class="cache-fill" id="cache-fill"></div></div>
+      <span class="cache-label" id="cache-label">Checking offline cache…</span>
+    </div>
+
+    <section class="card">
+      <div class="start-area">
+        <div class="fw-line">
+          <span class="fw-label">Console firmware</span>
+          <strong class="fw-value" id="fw-value">—</strong>
+        </div>
+
+        <button class="start-btn" id="start-btn" type="button" disabled>
+          <svg viewBox="0 0 16 16" width="22" height="22" fill="currentColor" aria-hidden="true">
+            <path d="M10.8 8 5 4.63v6.74L10.8 8zm.79-.7a.8.8 0 0 1 0 1.4l-6.36 3.69a.8.8 0 0 1-1.23-.69V4.31a.8.8 0 0 1 1.23-.7L11.6 7.3z"/>
+          </svg>
+          <span id="start-label">Start</span>
+        </button>
+
+        <p class="notice" id="notice">Reading console information…</p>
+      </div>
+
+      <div class="log-header">
+        <h2>Exploit log</h2>
+        <button class="clear-btn" id="clear-btn" type="button">Clear</button>
+      </div>
+      <div class="log-panel" id="DebugConsole">
+        <pre id="console">Ready.</pre>
+      </div>
+    </section>
+
+    <footer class="footer">
+      Targets firmware 12.00 only · Slopkit + Lapse chain · GoldHEN
+    </footer>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

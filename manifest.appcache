@@ -1,0 +1,24 @@
+CACHE MANIFEST
+# v1 — 2026-11-25
+# Bump the version line whenever a cached file changes.
+
+CACHE:
+./index.html
+./run.html
+./style.css
+./app.js
+./run.js
+./manifest.appcache
+./src/wobkot/main.js
+./src/wobkot/misc.js
+./src/wobkot/userland.js
+./src/wobkot/kernel.js
+./src/wobkot/lapse.js
+./src/wobkot/thread.js
+./src/wobkot/worker.js
+./src/wobkot/ps4/impl.js
+./src/wobkot/LICENSE.txt
+./payloads/goldhen.bin
+
+NETWORK:
+*
