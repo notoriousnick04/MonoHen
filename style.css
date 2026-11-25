@@ -136,21 +136,43 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  min-width: 190px;
-  padding: 14px 28px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--blue);
-  color: #fff;
-  font-size: 18px;
-  font-weight: 700;
+  width: 168px;
+  height: 168px;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, .12);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, rgba(37, 99, 235, .22), rgba(255, 255, 255, .03) 72%);
+  color: #3b82f6;
   cursor: pointer;
-  transition: background .15s ease, transform .15s ease;
+  transition: transform .15s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
 
-.start-btn:hover:not(:disabled) { background: var(--blue-hover); transform: scale(1.02); }
-.start-btn:disabled { background: var(--panel-soft); color: var(--muted); cursor: not-allowed; }
+.start-btn:hover:not(:disabled) {
+  transform: scale(1.04);
+  border-color: rgba(59, 130, 246, .6);
+  background: radial-gradient(circle at 50% 40%, rgba(37, 99, 235, .42), rgba(255, 255, 255, .06) 72%);
+  box-shadow: 0 0 30px rgba(37, 99, 235, .35);
+}
+
+.start-btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.ps-logo {
+  width: 100px;
+  height: 100px;
+  fill: currentColor;
+}
+
+.start-caption {
+  display: block;
+  margin-top: 14px;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
 
 .notice {
   min-height: 20px;
