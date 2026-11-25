@@ -78,7 +78,7 @@
     function finished(text, kind) {
       els.cacheBtn.disabled = false;
       setCacheProgress(100, text);
-      if (kind === 'bad') els.cacheLabel.style.color = '#f87171';
+      if (kind === 'bad') els.cacheLabel.style.color = '#ffffff';
     }
 
     cache.addEventListener('checking', function () {

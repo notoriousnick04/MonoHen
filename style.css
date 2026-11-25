@@ -1,15 +1,13 @@
-/* Minimal dark UI. Layout and colors are our own, inspired by common PS4 hosts. */
+/* Minimal monochrome UI. Layout and colors are our own, inspired by common PS4 hosts. */
 :root {
-  --bg: #111827;
-  --panel: #1f2937;
-  --panel-soft: #374151;
-  --blue: #2563eb;
-  --blue-hover: #1d4ed8;
-  --text: #f9fafb;
-  --muted: #9ca3af;
-  --ok: #4ade80;
-  --bad: #f87171;
-  --warn: #fbbf24;
+  --bg: #000000;
+  --panel: #0d0d0d;
+  --panel-soft: #242424;
+  --text: #ffffff;
+  --muted: #a3a3a3;
+  --ok: #ffffff;
+  --bad: #ffffff;
+  --warn: #c7c7c7;
 }
 
 * { box-sizing: border-box; }
@@ -58,6 +56,7 @@ html, body {
 .badge {
   display: inline-block;
   padding: 6px 10px;
+  border: 1px solid #333333;
   border-radius: 6px;
   background: var(--panel-soft);
   color: var(--muted);
@@ -66,8 +65,8 @@ html, body {
   white-space: nowrap;
 }
 
-.badge.ok { color: #052e16; background: var(--ok); }
-.badge.warn { color: #451a03; background: var(--warn); }
+.badge.ok { color: #000000; background: #ffffff; border-color: #ffffff; }
+.badge.warn { color: #000000; background: #c7c7c7; border-color: #c7c7c7; }
 
 .cache-btn, .clear-btn {
   border: 0;
@@ -80,7 +79,7 @@ html, body {
   cursor: pointer;
 }
 
-.cache-btn:hover, .clear-btn:hover { background: #4b5563; }
+.cache-btn:hover, .clear-btn:hover { background: #3d3d3d; }
 
 .cache-btn:disabled { opacity: .5; cursor: default; }
 
@@ -96,7 +95,7 @@ html, body {
 .cache-fill {
   height: 100%;
   width: 0;
-  background: var(--blue);
+  background: #ffffff;
   transition: width .2s ease;
 }
 
@@ -139,19 +138,19 @@ html, body {
   width: 168px;
   height: 168px;
   padding: 0;
-  border: 2px solid rgba(255, 255, 255, .12);
+  border: 2px solid rgba(255, 255, 255, .25);
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 40%, rgba(37, 99, 235, .22), rgba(255, 255, 255, .03) 72%);
-  color: #3b82f6;
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, .14), rgba(255, 255, 255, .02) 72%);
+  color: #ffffff;
   cursor: pointer;
   transition: transform .15s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
 
 .start-btn:hover:not(:disabled) {
   transform: scale(1.04);
-  border-color: rgba(59, 130, 246, .6);
-  background: radial-gradient(circle at 50% 40%, rgba(37, 99, 235, .42), rgba(255, 255, 255, .06) 72%);
-  box-shadow: 0 0 30px rgba(37, 99, 235, .35);
+  border-color: rgba(255, 255, 255, .75);
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, .26), rgba(255, 255, 255, .05) 72%);
+  box-shadow: 0 0 30px rgba(255, 255, 255, .25);
 }
 
 .start-btn:disabled {
@@ -181,7 +180,15 @@ html, body {
   font-size: 13px;
 }
 
-.notice.bad { color: var(--bad); }
+.notice.bad {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, .12);
+  color: #ffffff;
+  font-weight: 600;
+}
+
 .notice.warn { color: var(--warn); }
 
 .log-header {
@@ -216,15 +223,15 @@ html, body {
   white-space: pre-wrap;
 }
 
-.log-panel .ok { color: var(--ok); }
-.log-panel .bad { color: var(--bad); }
-.log-panel .warn { color: var(--warn); }
+.log-panel .ok { color: #ffffff; font-weight: 700; }
+.log-panel .bad { color: #ffffff; background: rgba(255, 255, 255, .14); }
+.log-panel .warn { color: #c7c7c7; font-style: italic; }
 .log-panel .grey, .log-panel .muted { color: var(--muted); }
 
 .footer {
   margin-top: 18px;
   text-align: center;
-  color: #6b7280;
+  color: #737373;
   font-size: 12px;
 }
 
@@ -252,7 +259,7 @@ html, body {
   cursor: pointer;
 }
 
-.back-btn:hover, .retry-btn:hover { background: #4b5563; }
+.back-btn:hover, .retry-btn:hover { background: #3d3d3d; }
 
 .run-state {
   margin-bottom: 10px;
@@ -260,7 +267,7 @@ html, body {
   color: var(--muted);
 }
 
-.run-state.ok { color: var(--ok); }
-.run-state.bad { color: var(--bad); }
+.run-state.ok { color: #ffffff; font-weight: 700; }
+.run-state.bad { color: #ffffff; font-weight: 700; text-decoration: underline; }
 
 .run-shell .log-panel { height: calc(100vh - 190px); min-height: 320px; }
