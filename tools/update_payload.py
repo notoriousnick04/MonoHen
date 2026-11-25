@@ -20,7 +20,6 @@ CORE_FILES = [
     "./style.css",
     "./app.js",
     "./run.js",
-    "./manifest.appcache",
     "./payloads/current.js",
     "./src/wobkot/main.js",
     "./src/wobkot/misc.js",
@@ -61,9 +60,9 @@ def write_manifest(name):
 
     # Hash the cached files themselves (not just the list) so any edit to a
     # cached file changes the header and forces browsers to refresh the cache.
-    # The manifest is excluded to avoid a circular dependency.
+    # The manifest is intentionally not in CORE_FILES, so no exclusion is needed.
     digest = hashlib.sha256()
-    for rel in [f for f in CORE_FILES if f != "./manifest.appcache"] + ["./payloads/" + name]:
+    for rel in CORE_FILES + ["./payloads/" + name]:
         digest.update(rel.encode("utf-8"))
         with open(os.path.join(ROOT, rel[2:]), "rb") as handle:
             digest.update(handle.read())

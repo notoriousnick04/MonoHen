@@ -1,5 +1,5 @@
 CACHE MANIFEST
-# cache set: af7ffbb97057
+# cache set: 4fb9a76ed715
 
 CACHE:
 ./index.html
@@ -7,7 +7,6 @@ CACHE:
 ./style.css
 ./app.js
 ./run.js
-./manifest.appcache
 ./payloads/current.js
 ./src/wobkot/main.js
 ./src/wobkot/misc.js

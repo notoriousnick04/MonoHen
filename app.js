@@ -122,7 +122,7 @@
     }, false);
 
     cache.addEventListener('error', function () {
-      finished('Cache unavailable. Check that manifest.appcache is served as text/cache-manifest.', 'bad');
+      finished('Cache failed. Check your connection, that manifest.appcache is served as text/cache-manifest, and that every listed file exists.', 'bad');
     }, false);
 
     cache.addEventListener('obsolete', function () {
