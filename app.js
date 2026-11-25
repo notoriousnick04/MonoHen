@@ -3,7 +3,8 @@
   'use strict';
 
   var TARGET_FW = '12.00';
-  var PAYLOAD_PATH = './payloads/goldhen.bin';
+  var PAYLOAD_NAME = window.LATEST_GOLDHEN || 'goldhen_v2.4b18.14.bin';
+  var PAYLOAD_PATH = './payloads/' + PAYLOAD_NAME;
 
   var els = {
     start: document.getElementById('start-btn'),

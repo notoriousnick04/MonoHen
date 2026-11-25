@@ -6,7 +6,7 @@ A very small, static PS4 WebKit jailbreak host for **firmware 12.00**. It has th
 - an autoscrolling **log panel**,
 - an **offline cache** (automatic on first visit, plus a manual refresh button).
 
-The exploit chain is the one WebKitty uses by default on 12.00: **Wobkot (WebKit userland) + Lapse (kernel)**, loading GoldHEN v2.4b18.14.
+The exploit chain is the one WebKitty uses by default on 12.00: **Wobkot (WebKit userland) + Lapse (kernel)**, loading the newest `goldhen_v*.bin` found in `payloads/`.
 
 > This is a personal, minimal host. It has been checked statically only. **It has not been tested on real hardware.** Verify it on your own console with the checklist below.
 
@@ -17,9 +17,11 @@ index.html            landing page: Start button, log panel, cache UI
 run.html              exploit runner (same log panel)
 app.js / run.js       UI and orchestration
 style.css             all styling
-manifest.appcache     offline cache manifest
+manifest.appcache     generated offline cache manifest
+tools/update_payload.py  regenerates the payload pointer and manifest
+.github/workflows/    regenerates the index on every push to main
 src/wobkot/           vendored, unmodified exploit chain from WebKitty
-payloads/goldhen.bin  GoldHEN v2.4b18.14 from WebKitty
+payloads/             GoldHEN binaries, kept under their original filenames
 ```
 
 ## Host it
@@ -42,6 +44,20 @@ python3 -m http.server 8000
 
 Then open `http://<your-ip>:8000/` on the PS4 (same network). Use HTTP, not HTTPS.
 
+## Updating GoldHEN
+
+GoldHEN files keep their original names, for example `goldhen_v2.4b18.14.bin`. The site picks the highest version number in `payloads/` automatically.
+
+**On GitHub:** paste the new `goldhen_v*.bin` into `payloads/` and push. The workflow regenerates `payloads/current.js` and `manifest.appcache` and commits them back.
+
+**Locally:** paste the new file, then run:
+
+```sh
+python3 tools/update_payload.py
+```
+
+The script prints which file it selected. It only considers files named `goldhen_vX.YbZ.W.bin`, so other files in the folder are ignored. The `payloads/current.js` pointer is generated — don't edit it by hand.
+
 ## Offline caching
 
 Both pages declare `manifest="manifest.appcache"`. The PS4's WebKit supports the HTML5 Application Cache, not Service Workers, so the manifest is the caching mechanism.
@@ -49,7 +65,7 @@ Both pages declare `manifest="manifest.appcache"`. The PS4's WebKit supports the
 - On the first visit the browser downloads everything in the manifest automatically; the status bar shows progress.
 - The **Cache for offline** button calls `applicationCache.update()`.
 - After caching, the PS4 can open the bookmarked page with no network connection.
-- If you change a cached file, bump the `# vN` line at the top of `manifest.appcache` and press the cache button.
+- `manifest.appcache` is generated with a content hash in its header comment. Any change to the file list changes that comment, which makes browsers refresh their cache; then press the cache button.
 
 GitHub Pages serves `.appcache` as `text/cache-manifest` (via mime-db), which the PS4 browser requires. Verify on your live URL:
 

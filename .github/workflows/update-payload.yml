@@ -1,0 +1,39 @@
+name: Update payload index
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "payloads/*.bin"
+      - "payloads/current.js"
+      - "manifest.appcache"
+      - "tools/update_payload.py"
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    if: ${{ !startsWith(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Regenerate payload pointer and cache manifest
+        run: python3 tools/update_payload.py
+
+      - name: Commit generated files if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add payloads/current.js manifest.appcache
+          if git diff --cached --quiet; then
+            echo "No generated files changed."
+          else
+            git commit -m "[skip ci] Update payload index"
+            git push origin HEAD:${{ github.ref_name }}
+          fi

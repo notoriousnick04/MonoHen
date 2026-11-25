@@ -1,6 +1,5 @@
 CACHE MANIFEST
-# v3 — 2026-11-25 (monochrome palette)
-# Bump the version line whenever a cached file changes.
+# payload set: 5694fceac16f
 
 CACHE:
 ./index.html
@@ -9,6 +8,7 @@ CACHE:
 ./app.js
 ./run.js
 ./manifest.appcache
+./payloads/current.js
 ./src/wobkot/main.js
 ./src/wobkot/misc.js
 ./src/wobkot/userland.js
@@ -18,7 +18,7 @@ CACHE:
 ./src/wobkot/worker.js
 ./src/wobkot/ps4/impl.js
 ./src/wobkot/LICENSE.txt
-./payloads/goldhen.bin
+./payloads/goldhen_v2.4b18.14.bin
 
 NETWORK:
 *
