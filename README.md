@@ -64,7 +64,8 @@ The page declares `manifest="manifest.appcache"`. The PS4's WebKit supports the 
 - On the first visit the browser downloads everything in the manifest automatically; the status bar shows progress.
 - The **Cache for offline** button calls `applicationCache.update()`.
 - After caching, the PS4 can open the bookmarked page with no network connection.
-- `manifest.appcache` is generated with a content hash in its header comment. Any change to the file list changes that comment, which makes browsers refresh their cache; then press the cache button.
+- `manifest.appcache` is generated with a content hash in its header comment. Any change to a cached file changes that comment, which makes browsers refresh their cache; then press the cache button.
+- When offline, the status line says `Offline — using cached copy.` AppCache still tries to check the manifest while offline, so its `error` event is expected and is not a failure in that case.
 
 GitHub Pages serves `.appcache` as `text/cache-manifest` (via mime-db), which the PS4 browser requires. Verify on your live URL:
 

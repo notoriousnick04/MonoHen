@@ -31,6 +31,7 @@
   var finished = false;
   var watchdogTimer = null;
   var retryInterval = null;
+  var cacheReady = false;
 
   function sessionGet(key) {
     try { return sessionStorage.getItem(key); } catch (e) { return null; }
@@ -97,20 +98,6 @@
     if (retryInterval) { clearInterval(retryInterval); retryInterval = null; }
   }
 
-  function enterRunnerUI() {
-    var classes = document.body.className || '';
-    if (classes.indexOf('running-exploit') === -1) {
-      document.body.className = (classes ? classes + ' ' : '') + 'running-exploit';
-    }
-  }
-
-  function leaveRunnerUI() {
-    document.body.className = (document.body.className || '')
-      .replace(/\brunning-exploit\b/g, '')
-      .replace(/\s+/g, ' ')
-      .replace(/^\s+|\s+$/g, '');
-  }
-
   function setupCache() {
     var cache = window.applicationCache;
 
@@ -136,6 +123,7 @@
     }, false);
 
     cache.addEventListener('noupdate', function () {
+      cacheReady = true;
       finished('Already cached — ready offline.');
     }, false);
 
@@ -151,21 +139,32 @@
     }, false);
 
     cache.addEventListener('cached', function () {
+      cacheReady = true;
       finished('Cached — this host now works offline.');
       log('Offline cache ready.', 'ok');
     }, false);
 
     cache.addEventListener('updateready', function () {
       try { cache.swapCache(); } catch (e) { /* ignore */ }
+      cacheReady = true;
       finished('Cache updated.');
       log('Offline cache updated.', 'ok');
     }, false);
 
     cache.addEventListener('error', function () {
+      // AppCache still tries to check the manifest while offline, so an error
+      // here is normal once a usable cache exists. Only report a real failure
+      // when nothing has been cached yet and the console is online.
+      if (cacheReady || navigator.onLine === false) {
+        els.cacheBtn.disabled = false;
+        setCacheProgress(100, 'Offline — using cached copy.');
+        return;
+      }
       finished('Cache failed. Check your connection, that manifest.appcache is served as text/cache-manifest, and that every listed file exists.', 'bad');
     }, false);
 
     cache.addEventListener('obsolete', function () {
+      cacheReady = false;
       finished('Cache was removed by the browser.', 'bad');
     }, false);
 
@@ -215,7 +214,6 @@
     finished = true;
     running = false;
     clearRunTimers();
-    leaveRunnerUI();
     sessionRemove('jbAttempt');
     sessionRemove('jbRetryPending');
 
@@ -232,7 +230,6 @@
     finished = true;
     running = false;
     clearRunTimers();
-    leaveRunnerUI();
     log('Attempt ' + attempt + ' failed: ' + reason, 'bad');
 
     if (attempt >= MAX_ATTEMPTS) {
@@ -271,7 +268,6 @@
 
   function stopRetry() {
     clearRunTimers();
-    leaveRunnerUI();
     sessionRemove('jbAttempt');
     sessionRemove('jbRetryPending');
 
@@ -300,8 +296,6 @@
       : 'Starting exploit chain…');
     log((automatic ? 'Auto-retry' : 'Starting') + ' attempt ' + attempt + ' of ' + MAX_ATTEMPTS + '…', 'ok');
     log('Payload: ' + PAYLOAD_PATH, 'grey');
-
-    enterRunnerUI();
 
     watchdogTimer = setTimeout(function () {
       failAttempt('Timed out waiting for jailbreak to finish.');
