@@ -1,4 +1,4 @@
-# PS4 WebKit Host (minimal, 12.00)
+# MonoHen (PS4 12.00 GoldHEN host)
 
 A very small, static PS4 WebKit jailbreak host for **firmware 12.00**. It has three things:
 
