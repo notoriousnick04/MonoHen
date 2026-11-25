@@ -58,11 +58,19 @@ def write_pointer(name):
 
 def write_manifest(name):
     body = ["CACHE:"] + CORE_FILES + ["./payloads/" + name, "", "NETWORK:", "*"]
-    digest = hashlib.sha256("\n".join(body).encode("utf-8")).hexdigest()[:12]
+
+    # Hash the cached files themselves (not just the list) so any edit to a
+    # cached file changes the header and forces browsers to refresh the cache.
+    # The manifest is excluded to avoid a circular dependency.
+    digest = hashlib.sha256()
+    for rel in [f for f in CORE_FILES if f != "./manifest.appcache"] + ["./payloads/" + name]:
+        digest.update(rel.encode("utf-8"))
+        with open(os.path.join(ROOT, rel[2:]), "rb") as handle:
+            digest.update(handle.read())
 
     lines = [
         "CACHE MANIFEST",
-        "# payload set: %s" % digest,
+        "# cache set: %s" % digest.hexdigest()[:12],
         "",
     ] + body
 

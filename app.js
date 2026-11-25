@@ -28,8 +28,17 @@
   }
 
   function detectFirmware() {
-    var match = navigator.userAgent.match(/PlayStation 4\/([0-9.]+)/);
-    return match ? match[1] : null;
+    var userAgent = navigator.userAgent;
+    var match = userAgent.match(/PlayStation 4\/([0-9.]+)/);
+    if (match) return match[1];
+
+    // Fallback for PS4 browsers that format the firmware differently.
+    var start = userAgent.indexOf('5.0 (') + 19;
+    var end = userAgent.indexOf(') Apple');
+    if (start > 18 && end > start) {
+      return userAgent.substring(start, end).replace('layStation 4/', '').trim();
+    }
+    return null;
   }
 
   function scrollLog() {
