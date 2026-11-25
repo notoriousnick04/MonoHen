@@ -1,10 +1,14 @@
-/* Landing page: firmware detection, start orchestration, autoscroll log, AppCache UI. */
+/* Landing page: firmware detection, in-place exploit runner, autoscroll log, AppCache UI. */
 (function () {
   'use strict';
 
   var TARGET_FW = '12.00';
   var PAYLOAD_NAME = window.LATEST_GOLDHEN || 'goldhen_v2.4b18.14.bin';
   var PAYLOAD_PATH = './payloads/' + PAYLOAD_NAME;
+
+  var MAX_ATTEMPTS = 3;
+  var RETRY_DELAY = 5;
+  var WATCHDOG_MS = 90000;
 
   var els = {
     start: document.getElementById('start-btn'),
@@ -22,6 +26,23 @@
 
   var mode = 'demo';
   var demoTimers = [];
+  var attempt = 1;
+  var running = false;
+  var finished = false;
+  var watchdogTimer = null;
+  var retryInterval = null;
+
+  function sessionGet(key) {
+    try { return sessionStorage.getItem(key); } catch (e) { return null; }
+  }
+
+  function sessionSet(key, value) {
+    try { sessionStorage.setItem(key, value); } catch (e) { /* ignore */ }
+  }
+
+  function sessionRemove(key) {
+    try { sessionStorage.removeItem(key); } catch (e) { /* ignore */ }
+  }
 
   function isPS4() {
     return navigator.userAgent.indexOf('PlayStation 4') !== -1;
@@ -69,6 +90,25 @@
   function setCacheProgress(percent, text) {
     els.cacheFill.style.width = Math.max(0, Math.min(100, percent)) + '%';
     els.cacheLabel.textContent = text;
+  }
+
+  function clearRunTimers() {
+    if (watchdogTimer) { clearTimeout(watchdogTimer); watchdogTimer = null; }
+    if (retryInterval) { clearInterval(retryInterval); retryInterval = null; }
+  }
+
+  function enterRunnerUI() {
+    var classes = document.body.className || '';
+    if (classes.indexOf('running-exploit') === -1) {
+      document.body.className = (classes ? classes + ' ' : '') + 'running-exploit';
+    }
+  }
+
+  function leaveRunnerUI() {
+    document.body.className = (document.body.className || '')
+      .replace(/\brunning-exploit\b/g, '')
+      .replace(/\s+/g, ' ')
+      .replace(/^\s+|\s+$/g, '');
   }
 
   function setupCache() {
@@ -150,7 +190,7 @@
       ['[+] ===KERNEL===', ''],
       ['[+] Lapse kernel exploit: base found', 'ok'],
       ['[+] Achieved jailbreak !!', 'ok'],
-      ['[+] Loading ./payloads/goldhen.bin', ''],
+      ['[+] Loading ' + PAYLOAD_PATH, ''],
       ['[+] ===END===', 'ok']
     ];
 
@@ -169,22 +209,139 @@
     });
   }
 
+  function succeed() {
+    if (!running || finished) return;
+
+    finished = true;
+    running = false;
+    clearRunTimers();
+    leaveRunnerUI();
+    sessionRemove('jbAttempt');
+    sessionRemove('jbRetryPending');
+
+    mode = 'ps4';
+    els.start.disabled = false;
+    els.startLabel.textContent = 'Start again';
+    setNotice('Jailbreak complete — GoldHEN loaded.');
+    log('Jailbreak complete.', 'ok');
+  }
+
+  function failAttempt(reason) {
+    if (!running || finished) return;
+
+    finished = true;
+    running = false;
+    clearRunTimers();
+    leaveRunnerUI();
+    log('Attempt ' + attempt + ' failed: ' + reason, 'bad');
+
+    if (attempt >= MAX_ATTEMPTS) {
+      sessionRemove('jbAttempt');
+      sessionRemove('jbRetryPending');
+      mode = 'ps4';
+      els.start.disabled = false;
+      els.startLabel.textContent = 'Retry';
+      setNotice('Attempt ' + attempt + ' failed. Press Retry to try again.', 'bad');
+      return;
+    }
+
+    var next = attempt + 1;
+    var remaining = RETRY_DELAY;
+
+    mode = 'stopretry';
+    els.start.disabled = false;
+    els.startLabel.textContent = 'Stop retry (' + remaining + 's)';
+    setNotice('Retrying in ' + remaining + 's… (attempt ' + next + ' of ' + MAX_ATTEMPTS + ')', 'warn');
+    log('Auto retry in ' + remaining + 's…', 'warn');
+
+    retryInterval = setInterval(function () {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(retryInterval);
+        retryInterval = null;
+        sessionSet('jbAttempt', String(next));
+        sessionSet('jbRetryPending', '1');
+        window.location.reload();
+        return;
+      }
+      els.startLabel.textContent = 'Stop retry (' + remaining + 's)';
+      setNotice('Retrying in ' + remaining + 's… (attempt ' + next + ' of ' + MAX_ATTEMPTS + ')', 'warn');
+    }, 1000);
+  }
+
+  function stopRetry() {
+    clearRunTimers();
+    leaveRunnerUI();
+    sessionRemove('jbAttempt');
+    sessionRemove('jbRetryPending');
+
+    mode = 'ps4';
+    els.start.disabled = false;
+    els.startLabel.textContent = 'Retry';
+    setNotice('Auto retry stopped. Press Retry to try again.', 'warn');
+    log('Auto retry stopped.', 'warn');
+  }
+
+  function beginAttempt(number, automatic) {
+    clearRunTimers();
+
+    attempt = number;
+    running = true;
+    finished = false;
+
+    sessionSet('payload_path', PAYLOAD_PATH);
+    sessionSet('jbAttempt', String(attempt));
+    sessionRemove('jbRetryPending');
+
+    els.start.disabled = true;
+    els.startLabel.textContent = automatic ? 'Auto retry ' + attempt : 'Running…';
+    setNotice(automatic
+      ? 'Automatic retry ' + attempt + ' of ' + MAX_ATTEMPTS + '…'
+      : 'Starting exploit chain…');
+    log((automatic ? 'Auto-retry' : 'Starting') + ' attempt ' + attempt + ' of ' + MAX_ATTEMPTS + '…', 'ok');
+    log('Payload: ' + PAYLOAD_PATH, 'grey');
+
+    enterRunnerUI();
+
+    watchdogTimer = setTimeout(function () {
+      failAttempt('Timed out waiting for jailbreak to finish.');
+    }, WATCHDOG_MS);
+
+    var script = document.createElement('script');
+    script.src = './src/wobkot/main.js';
+    script.onerror = function () {
+      failAttempt('Could not load src/wobkot/main.js');
+    };
+    document.body.appendChild(script);
+  }
+
   function start() {
     if (mode === 'demo') {
       runDemo();
       return;
     }
-
-    try {
-      sessionStorage.setItem('payload_path', PAYLOAD_PATH);
-    } catch (e) {
-      setNotice('Could not store payload path: ' + e.message, 'bad');
+    if (mode === 'stopretry') {
+      stopRetry();
       return;
     }
+    if (mode === 'wrongfw') return;
 
-    log('Starting exploit chain…', 'ok');
-    window.location.href = './run.html';
+    beginAttempt(1, false);
   }
+
+  window.isPayloadElf = function () { return false; };
+  window.jailbreakSuccess = function () { succeed(); };
+
+  window.addEventListener('error', function (event) {
+    if (!running || finished) return;
+    failAttempt('Error: ' + (event && event.message ? event.message : 'unknown error'));
+  }, false);
+
+  window.addEventListener('unhandledrejection', function (event) {
+    if (!running || finished) return;
+    var reason = event && event.reason;
+    failAttempt('Unhandled error: ' + (reason && reason.message ? reason.message : String(reason)));
+  }, false);
 
   function init() {
     var ps4 = isPS4();
@@ -198,6 +355,18 @@
       scrollLog();
     }, false);
     els.start.addEventListener('click', start, false);
+
+    var pending = sessionGet('jbRetryPending') === '1';
+    var savedAttempt = parseInt(sessionGet('jbAttempt'), 10);
+    if (!savedAttempt || savedAttempt < 1 || savedAttempt > MAX_ATTEMPTS) savedAttempt = 1;
+
+    if (ps4 && fw === TARGET_FW && pending) {
+      mode = 'ps4';
+      setBadge('PS4 · 12.00', 'ok');
+      setupCache();
+      beginAttempt(savedAttempt, true);
+      return;
+    }
 
     if (ps4 && fw === TARGET_FW) {
       mode = 'ps4';

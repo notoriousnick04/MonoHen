@@ -13,9 +13,8 @@ The exploit chain is the one WebKitty uses by default on 12.00: **Wobkot (WebKit
 ## Repository layout
 
 ```
-index.html            landing page: Start button, log panel, cache UI
-run.html              exploit runner (same log panel)
-app.js / run.js       UI and orchestration
+index.html            the only page: Start button, log panel, cache UI
+app.js                UI, orchestration, and automatic retry
 style.css             all styling
 manifest.appcache     generated offline cache manifest
 tools/update_payload.py  regenerates the payload pointer and manifest
@@ -60,7 +59,7 @@ The script prints which file it selected. It only considers files named `goldhen
 
 ## Offline caching
 
-Both pages declare `manifest="manifest.appcache"`. The PS4's WebKit supports the HTML5 Application Cache, not Service Workers, so the manifest is the caching mechanism.
+The page declares `manifest="manifest.appcache"`. The PS4's WebKit supports the HTML5 Application Cache, not Service Workers, so the manifest is the caching mechanism.
 
 - On the first visit the browser downloads everything in the manifest automatically; the status bar shows progress.
 - The **Cache for offline** button calls `applicationCache.update()`.
@@ -75,6 +74,12 @@ curl -I https://<username>.github.io/<repo-name>/manifest.appcache | grep -i con
 
 Modern desktop browsers have removed AppCache, so the status line will say "not supported in this browser" there — that is expected. Desktop mode is for visual testing only: on a non-PS4 browser, Start streams a simulated log.
 
+## Start and retry behavior
+
+Nothing happens automatically when you open the page — you must press Start. The exploit then runs **on the same page**, and its log streams into the panel you are looking at; there is no second page or tab.
+
+If an attempt fails, the page waits 5 seconds and retries automatically, up to **3 attempts total**. The button turns into **Stop retry** during the countdown if you want to cancel. After 3 failed attempts it stops and the button becomes **Retry**. A full kernel panic cannot be detected by the browser — in that case, reboot the console manually.
+
 ## Hardware test checklist
 
 1. Clear the PS4 browser's cookies/site data, then open the host URL and let caching reach 100%.
@@ -82,7 +87,7 @@ Modern desktop browsers have removed AppCache, so the status line will say "not 
 3. Press Start and watch the log. Look for `===USERLAND===`, `===KERNEL===`, `Achieved jailbreak !!`, and `===END===`.
 4. Check the PS4 notification for HEN/GoldHEN, then check **Settings → System → System Information**: the firmware line should show the HEN version.
 5. Power the console off and on, disable the network, open the bookmark, and confirm the page still loads from cache.
-6. If it fails: note the last log line, reboot the console, clear browser data, and try again. Kernel panics and "not enough memory" dialogs are normal in this scene — keep pressing OK / retry.
+6. If it fails: note the last log line. The host will auto-retry up to 3 times; press **Stop retry** to cancel. Kernel panics and "not enough memory" dialogs are normal in this scene — keep pressing OK, and reboot manually if the console freezes.
 
 ## Credits and license
 

@@ -16,10 +16,8 @@ PATTERN = re.compile(r"^goldhen_v(\d+)\.(\d+)b(\d+)\.(\d+)\.bin$")
 
 CORE_FILES = [
     "./index.html",
-    "./run.html",
     "./style.css",
     "./app.js",
-    "./run.js",
     "./payloads/current.js",
     "./src/wobkot/main.js",
     "./src/wobkot/misc.js",

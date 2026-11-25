@@ -1,12 +1,10 @@
 CACHE MANIFEST
-# cache set: 4fb9a76ed715
+# cache set: 810eef3268cc
 
 CACHE:
 ./index.html
-./run.html
 ./style.css
 ./app.js
-./run.js
 ./payloads/current.js
 ./src/wobkot/main.js
 ./src/wobkot/misc.js
