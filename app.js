@@ -7,7 +7,7 @@
   var PAYLOAD_PATH = './payloads/' + PAYLOAD_NAME;
 
   var MAX_ATTEMPTS = 3;
-  var RETRY_DELAY = 5;
+  var RETRY_DELAY = 15;
   var WATCHDOG_MS = 90000;
 
   var els = {
@@ -29,6 +29,7 @@
   var attempt = 1;
   var running = false;
   var finished = false;
+  var kernelStage = false;
   var watchdogTimer = null;
   var retryInterval = null;
   var cacheReady = false;
@@ -96,6 +97,12 @@
   function clearRunTimers() {
     if (watchdogTimer) { clearTimeout(watchdogTimer); watchdogTimer = null; }
     if (retryInterval) { clearInterval(retryInterval); retryInterval = null; }
+  }
+
+  function clearRetryState() {
+    sessionRemove('jbAttempt');
+    sessionRemove('jbRetryPending');
+    sessionRemove('jbRetryReason');
   }
 
   function setupCache() {
@@ -208,14 +215,29 @@
     });
   }
 
+  function rebootNeeded(reason) {
+    if (!running || finished) return;
+
+    finished = true;
+    running = false;
+    clearRunTimers();
+    clearRetryState();
+
+    mode = 'reboot';
+    els.start.disabled = true;
+    els.startLabel.textContent = 'Reboot needed';
+    setNotice('Kernel stage did not finish. Fully reboot the PS4, then press Start again.', 'bad');
+    log('Attempt ' + attempt + ' stopped at kernel stage: ' + reason, 'bad');
+    log('Fully reboot the PS4 before trying again.', 'bad');
+  }
+
   function succeed() {
     if (!running || finished) return;
 
     finished = true;
     running = false;
     clearRunTimers();
-    sessionRemove('jbAttempt');
-    sessionRemove('jbRetryPending');
+    clearRetryState();
 
     mode = 'ps4';
     els.start.disabled = false;
@@ -232,9 +254,13 @@
     clearRunTimers();
     log('Attempt ' + attempt + ' failed: ' + reason, 'bad');
 
+    if (kernelStage) {
+      rebootNeeded(reason);
+      return;
+    }
+
     if (attempt >= MAX_ATTEMPTS) {
-      sessionRemove('jbAttempt');
-      sessionRemove('jbRetryPending');
+      clearRetryState();
       mode = 'ps4';
       els.start.disabled = false;
       els.startLabel.textContent = 'Retry';
@@ -243,33 +269,16 @@
     }
 
     var next = attempt + 1;
-    var remaining = RETRY_DELAY;
-
-    mode = 'stopretry';
-    els.start.disabled = false;
-    els.startLabel.textContent = 'Stop retry (' + remaining + 's)';
-    setNotice('Retrying in ' + remaining + 's… (attempt ' + next + ' of ' + MAX_ATTEMPTS + ')', 'warn');
-    log('Auto retry in ' + remaining + 's…', 'warn');
-
-    retryInterval = setInterval(function () {
-      remaining--;
-      if (remaining <= 0) {
-        clearInterval(retryInterval);
-        retryInterval = null;
-        sessionSet('jbAttempt', String(next));
-        sessionSet('jbRetryPending', '1');
-        window.location.reload();
-        return;
-      }
-      els.startLabel.textContent = 'Stop retry (' + remaining + 's)';
-      setNotice('Retrying in ' + remaining + 's… (attempt ' + next + ' of ' + MAX_ATTEMPTS + ')', 'warn');
-    }, 1000);
+    sessionSet('jbAttempt', String(next));
+    sessionSet('jbRetryPending', '1');
+    sessionSet('jbRetryReason', reason);
+    log('Reloading for a fresh retry…', 'warn');
+    window.location.reload();
   }
 
   function stopRetry() {
     clearRunTimers();
-    sessionRemove('jbAttempt');
-    sessionRemove('jbRetryPending');
+    clearRetryState();
 
     mode = 'ps4';
     els.start.disabled = false;
@@ -278,16 +287,34 @@
     log('Auto retry stopped.', 'warn');
   }
 
+  function watchChain() {
+    // The vendored chain owns window.onerror / onunhandledrejection and logs
+    // failures itself. We observe its progress so the early error hook above
+    // never triggers a reload once kernel memory is unstable.
+    try {
+      if (typeof logger === 'undefined' || !logger || typeof logger.log !== 'function') return;
+      var originalLog = logger.log;
+      logger.log = function (prefix, msg) {
+        if (String(msg).indexOf('===KERNEL===') !== -1) kernelStage = true;
+        return originalLog.call(logger, prefix, msg);
+      };
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
   function beginAttempt(number, automatic) {
     clearRunTimers();
 
     attempt = number;
     running = true;
     finished = false;
+    kernelStage = false;
 
     sessionSet('payload_path', PAYLOAD_PATH);
     sessionSet('jbAttempt', String(attempt));
     sessionRemove('jbRetryPending');
+    sessionRemove('jbRetryReason');
 
     els.start.disabled = true;
     els.startLabel.textContent = automatic ? 'Auto retry ' + attempt : 'Running…';
@@ -298,15 +325,46 @@
     log('Payload: ' + PAYLOAD_PATH, 'grey');
 
     watchdogTimer = setTimeout(function () {
-      failAttempt('Timed out waiting for jailbreak to finish.');
+      if (kernelStage) {
+        rebootNeeded('timed out after kernel stage');
+      } else {
+        failAttempt('timed out before kernel stage');
+      }
     }, WATCHDOG_MS);
 
     var script = document.createElement('script');
     script.src = './src/wobkot/main.js';
     script.onerror = function () {
-      failAttempt('Could not load src/wobkot/main.js');
+      failAttempt('could not load src/wobkot/main.js');
     };
+    script.onload = watchChain;
     document.body.appendChild(script);
+  }
+
+  function startPendingRetry(savedAttempt) {
+    mode = 'stopretry';
+    var reason = sessionGet('jbRetryReason');
+    var remaining = RETRY_DELAY;
+
+    setBadge('PS4 · 12.00', 'ok');
+    els.start.disabled = false;
+    els.startLabel.textContent = 'Stop retry (' + remaining + 's)';
+    setNotice('Retrying in ' + remaining + 's… (attempt ' + savedAttempt + ' of ' + MAX_ATTEMPTS + ')', 'warn');
+    log('Previous attempt failed' + (reason ? ': ' + reason : '') + '.', 'bad');
+
+    retryInterval = setInterval(function () {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(retryInterval);
+        retryInterval = null;
+        sessionRemove('jbRetryPending');
+        sessionRemove('jbRetryReason');
+        beginAttempt(savedAttempt, true);
+        return;
+      }
+      els.startLabel.textContent = 'Stop retry (' + remaining + 's)';
+      setNotice('Retrying in ' + remaining + 's… (attempt ' + savedAttempt + ' of ' + MAX_ATTEMPTS + ')', 'warn');
+    }, 1000);
   }
 
   function start() {
@@ -318,7 +376,7 @@
       stopRetry();
       return;
     }
-    if (mode === 'wrongfw') return;
+    if (mode === 'wrongfw' || mode === 'reboot') return;
 
     beginAttempt(1, false);
   }
@@ -326,15 +384,20 @@
   window.isPayloadElf = function () { return false; };
   window.jailbreakSuccess = function () { succeed(); };
 
+  function earlyFailure(reason) {
+    // Only retry errors that happen before the kernel stage. Once the kernel
+    // exploit is running, a reload can turn a bad state into a panic/shutdown.
+    if (!running || finished || kernelStage) return;
+    failAttempt(reason);
+  }
+
   window.addEventListener('error', function (event) {
-    if (!running || finished) return;
-    failAttempt('Error: ' + (event && event.message ? event.message : 'unknown error'));
+    earlyFailure('Error: ' + (event && event.message ? event.message : 'unknown error'));
   }, false);
 
   window.addEventListener('unhandledrejection', function (event) {
-    if (!running || finished) return;
     var reason = event && event.reason;
-    failAttempt('Unhandled error: ' + (reason && reason.message ? reason.message : String(reason)));
+    earlyFailure('Unhandled error: ' + (reason && reason.message ? reason.message : String(reason)));
   }, false);
 
   function init() {
@@ -355,10 +418,8 @@
     if (!savedAttempt || savedAttempt < 1 || savedAttempt > MAX_ATTEMPTS) savedAttempt = 1;
 
     if (ps4 && fw === TARGET_FW && pending) {
-      mode = 'ps4';
-      setBadge('PS4 · 12.00', 'ok');
       setupCache();
-      beginAttempt(savedAttempt, true);
+      startPendingRetry(savedAttempt);
       return;
     }
 
