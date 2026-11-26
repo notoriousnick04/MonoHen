@@ -301,6 +301,29 @@
     } catch (e) {
       /* ignore */
     }
+
+    // Translate only the PS4 notification text. The vendored files stay
+    // unmodified; userland.js defines notify(), so wrap it right after it loads.
+    try {
+      if (typeof window.load_script !== 'function') return;
+      var originalLoadScript = window.load_script;
+      window.load_script = function (src) {
+        return originalLoadScript(src).then(function () {
+          if (String(src).indexOf('src/wobkot/userland.js') === -1) return;
+          if (typeof window.notify !== 'function' || window.notify.__monohenWrapped) return;
+
+          var originalNotify = window.notify;
+          var wrapped = function (msg) {
+            if (String(msg) === 'Jailbroken !!') msg = 'Success';
+            return originalNotify(msg);
+          };
+          wrapped.__monohenWrapped = true;
+          window.notify = wrapped;
+        });
+      };
+    } catch (e) {
+      /* ignore */
+    }
   }
 
   function beginAttempt(number, automatic) {
