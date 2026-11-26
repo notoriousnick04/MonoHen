@@ -159,10 +159,16 @@
     }, false);
 
     cache.addEventListener('error', function () {
-      // AppCache still tries to check the manifest while offline, so an error
-      // here is normal once a usable cache exists. Only report a real failure
-      // when nothing has been cached yet and the console is online.
-      if (cacheReady || navigator.onLine === false) {
+      // AppCache still checks the manifest when the network is up but DNS is
+      // blocked (e.g. 127.0.0.1). If this document already has a cache, that
+      // error is normal. Only report a real failure on a first uncached visit.
+      var uncached = typeof cache.UNCACHED === 'number' ? cache.UNCACHED : 0;
+      var hasCache = cacheReady ||
+        (typeof cache.status === 'number' && cache.status !== uncached) ||
+        navigator.onLine === false;
+
+      if (hasCache) {
+        cacheReady = true;
         els.cacheBtn.disabled = false;
         setCacheProgress(100, 'Offline — using cached copy.');
         return;
